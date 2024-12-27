@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 )
 
 // MultipartForm the Multipart request spec https://github.com/jaydenseric/graphql-multipart-request-spec
@@ -83,7 +84,7 @@ func (f MultipartForm) Do(w http.ResponseWriter, r *http.Request, exec graphql.G
 	}
 
 	var params graphql.RawParams
-	if err = jsonDecode(part, &params); err != nil {
+	if err = internal.JsonDecode(part, &params); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		writeJsonError(w, "operations form field could not be decoded")
 		return

@@ -6,16 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/executor"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/lru"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
 )
 
 type (
@@ -29,42 +25,6 @@ func New(es graphql.ExecutableSchema) *Server {
 	return &Server{
 		exec: executor.New(es),
 	}
-}
-
-// NewDefaultServer is a demonstration only. Not for prod.
-//
-// Currently, the server just picks the first available transport,
-// so this example NewDefaultServer orders them, but it is just
-// for demonstration purposes.
-// You will likely want to tune and better configure Websocket transport
-// since adding a new one (To configure it) doesn't have effect.
-//
-// Also SSE support is not in here at all!
-// SSE when used over HTTP/1.1 (but not HTTP/2 or HTTP/3),
-// SSE suffers from a severe limitation to the maximum number
-// of open connections of 6 per browser. See:
-// https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#sect1
-//
-// Deprecated: This was and is just an example.
-func NewDefaultServer(es graphql.ExecutableSchema) *Server {
-	srv := New(es)
-
-	srv.AddTransport(transport.Websocket{
-		KeepAlivePingInterval: 10 * time.Second,
-	})
-	srv.AddTransport(transport.Options{})
-	srv.AddTransport(transport.GET{})
-	srv.AddTransport(transport.POST{})
-	srv.AddTransport(transport.MultipartForm{})
-
-	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
-
-	srv.Use(extension.Introspection{})
-	srv.Use(extension.AutomaticPersistedQuery{
-		Cache: lru.New[string](100),
-	})
-
-	return srv
 }
 
 func (s *Server) AddTransport(transport graphql.Transport) {

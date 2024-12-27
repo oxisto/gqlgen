@@ -1,4 +1,4 @@
-package transport_test
+package websocket_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gwebsocket "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vektah/gqlparser/v2"
@@ -20,14 +20,14 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/testserver"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/handler/transport/websocket"
 )
 
 type ckey string
 
 func TestWebsocket(t *testing.T) {
 	handler := testserver.New()
-	handler.AddTransport(transport.Websocket{})
+	handler.AddTransport(websocket.Websocket{})
 
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
@@ -50,7 +50,7 @@ func TestWebsocket(t *testing.T) {
 		require.NoError(t, c.WriteJSON(&operationMessage{Type: connectionTerminateMsg}))
 
 		_, _, err := c.ReadMessage()
-		assert.Equal(t, websocket.CloseNormalClosure, err.(*websocket.CloseError).Code)
+		assert.Equal(t, gwebsocket.CloseNormalClosure, err.(*gwebsocket.CloseError).Code)
 	})
 
 	t.Run("client must send init first", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestWebsocket(t *testing.T) {
 		require.NoError(t, c.WriteJSON(&operationMessage{Type: connectionTerminateMsg}))
 
 		_, _, err := c.ReadMessage()
-		assert.Equal(t, websocket.CloseNormalClosure, err.(*websocket.CloseError).Code)
+		assert.Equal(t, gwebsocket.CloseNormalClosure, err.(*gwebsocket.CloseError).Code)
 	})
 
 	t.Run("client gets parse errors", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestWebsocket(t *testing.T) {
 
 func TestWebsocketWithKeepAlive(t *testing.T) {
 	h := testserver.New()
-	h.AddTransport(transport.Websocket{
+	h.AddTransport(websocket.Websocket{
 		KeepAlivePingInterval: 100 * time.Millisecond,
 	})
 
@@ -191,7 +191,7 @@ func TestWebsocketWithKeepAlive(t *testing.T) {
 
 func TestWebsocketWithPassedHeaders(t *testing.T) {
 	h := testserver.New()
-	h.AddTransport(transport.Websocket{
+	h.AddTransport(websocket.Websocket{
 		KeepAlivePingInterval: 100 * time.Millisecond,
 	})
 
@@ -234,7 +234,7 @@ func TestWebsocketWithPassedHeaders(t *testing.T) {
 func TestWebsocketInitFunc(t *testing.T) {
 	t.Run("accept connection if WebsocketInitFunc is NOT provided", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{})
+		h.AddTransport(websocket.Websocket{})
 		srv := httptest.NewServer(h)
 		defer srv.Close()
 
@@ -249,8 +249,8 @@ func TestWebsocketInitFunc(t *testing.T) {
 
 	t.Run("accept connection if WebsocketInitFunc is provided and is accepting connection", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, initPayload websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				return context.WithValue(ctx, ckey("newkey"), "newvalue"), nil, nil
 			},
 		})
@@ -268,8 +268,8 @@ func TestWebsocketInitFunc(t *testing.T) {
 
 	t.Run("reject connection if WebsocketInitFunc is provided and is accepting connection", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, initPayload websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				return ctx, nil, errors.New("invalid init payload")
 			},
 		})
@@ -303,8 +303,8 @@ func TestWebsocketInitFunc(t *testing.T) {
 		}
 		h := handler.New(es)
 
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, initPayload websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				return context.WithValue(ctx, ckey("newkey"), "newvalue"), nil, nil
 			},
 		})
@@ -324,9 +324,9 @@ func TestWebsocketInitFunc(t *testing.T) {
 	t.Run("can set a deadline on a websocket connection and close it with a reason", func(t *testing.T) {
 		h := testserver.New()
 		var cancel func()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, _ transport.InitPayload) (newCtx context.Context, _ *transport.InitPayload, _ error) {
-				newCtx, cancel = context.WithTimeout(transport.AppendCloseReason(ctx, "beep boop"), time.Millisecond*5)
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, _ websocket.InitPayload) (newCtx context.Context, _ *websocket.InitPayload, _ error) {
+				newCtx, cancel = context.WithTimeout(websocket.AppendCloseReason(ctx, "beep boop"), time.Millisecond*5)
 				return
 			},
 		})
@@ -348,9 +348,9 @@ func TestWebsocketInitFunc(t *testing.T) {
 	})
 	t.Run("accept connection if WebsocketInitFunc is provided and is accepting connection", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
-				initResponsePayload := transport.InitPayload{"trackingId": "123-456"}
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, initPayload websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
+				initResponsePayload := websocket.InitPayload{"trackingId": "123-456"}
 				return context.WithValue(ctx, ckey("newkey"), "newvalue"), &initResponsePayload, nil
 			},
 		})
@@ -378,7 +378,7 @@ func TestWebsocketInitFunc(t *testing.T) {
 func TestWebSocketInitTimeout(t *testing.T) {
 	t.Run("times out if no init message is received within the configured duration", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			InitTimeout: 5 * time.Millisecond,
 		})
 		srv := httptest.NewServer(h)
@@ -395,7 +395,7 @@ func TestWebSocketInitTimeout(t *testing.T) {
 
 	t.Run("keeps waiting for an init message if no time out is configured", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{})
+		h.AddTransport(websocket.Websocket{})
 		srv := httptest.NewServer(h)
 		defer srv.Close()
 
@@ -422,11 +422,11 @@ func TestWebSocketErrorFunc(t *testing.T) {
 	t.Run("the error handler gets called when an error occurs", func(t *testing.T) {
 		errFuncCalled := make(chan bool, 1)
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			ErrorFunc: func(_ context.Context, err error) {
 				require.EqualError(t, err, "websocket read: invalid message received")
-				assert.IsType(t, transport.WebsocketError{}, err)
-				assert.True(t, err.(transport.WebsocketError).IsReadError)
+				assert.IsType(t, websocket.WebsocketError{}, err)
+				assert.True(t, err.(websocket.WebsocketError).IsReadError)
 				errFuncCalled <- true
 			},
 		})
@@ -438,7 +438,7 @@ func TestWebSocketErrorFunc(t *testing.T) {
 		require.NoError(t, c.WriteJSON(&operationMessage{Type: connectionInitMsg}))
 		assert.Equal(t, connectionAckMsg, readOp(c).Type)
 		assert.Equal(t, connectionKeepAliveMsg, readOp(c).Type)
-		require.NoError(t, c.WriteMessage(websocket.TextMessage, []byte("mark my words, you will regret this")))
+		require.NoError(t, c.WriteMessage(gwebsocket.TextMessage, []byte("mark my words, you will regret this")))
 
 		select {
 		case res := <-errFuncCalled:
@@ -450,8 +450,8 @@ func TestWebSocketErrorFunc(t *testing.T) {
 
 	t.Run("init func errors do not call the error handler", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, _ transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, _ websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				return ctx, nil, errors.New("this is not what we agreed upon")
 			},
 			ErrorFunc: func(_ context.Context, err error) {
@@ -468,8 +468,8 @@ func TestWebSocketErrorFunc(t *testing.T) {
 
 	t.Run("init func context closes do not call the error handler", func(t *testing.T) {
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, _ transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, _ websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				newCtx, cancel := context.WithCancel(ctx)
 				time.AfterFunc(time.Millisecond*5, cancel)
 				return newCtx, nil, nil
@@ -491,8 +491,8 @@ func TestWebSocketErrorFunc(t *testing.T) {
 	t.Run("init func context deadlines do not call the error handler", func(t *testing.T) {
 		h := testserver.New()
 		var cancel func()
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, _ transport.InitPayload) (newCtx context.Context, _ *transport.InitPayload, _ error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, _ websocket.InitPayload) (newCtx context.Context, _ *websocket.InitPayload, _ error) {
 				newCtx, cancel = context.WithDeadline(ctx, time.Now().Add(time.Millisecond*5))
 				return newCtx, nil, nil
 			},
@@ -519,7 +519,7 @@ func TestWebSocketCloseFunc(t *testing.T) {
 	t.Run("the on close handler gets called when the websocket is closed", func(t *testing.T) {
 		closeFuncCalled := make(chan bool, 1)
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			CloseFunc: func(_ context.Context, _closeCode int) {
 				closeFuncCalled <- true
 			},
@@ -545,7 +545,7 @@ func TestWebSocketCloseFunc(t *testing.T) {
 	t.Run("the on close handler gets called only once when the websocket is closed", func(t *testing.T) {
 		closeFuncCalled := make(chan bool, 1)
 		h := testserver.New()
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			CloseFunc: func(_ context.Context, _closeCode int) {
 				closeFuncCalled <- true
 			},
@@ -578,8 +578,8 @@ func TestWebSocketCloseFunc(t *testing.T) {
 	t.Run("init func errors call the close handler", func(t *testing.T) {
 		h := testserver.New()
 		closeFuncCalled := make(chan bool, 1)
-		h.AddTransport(transport.Websocket{
-			InitFunc: func(ctx context.Context, _ transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+		h.AddTransport(websocket.Websocket{
+			InitFunc: func(ctx context.Context, _ websocket.InitPayload) (context.Context, *websocket.InitPayload, error) {
 				return ctx, nil, errors.New("error during init")
 			},
 			CloseFunc: func(_ context.Context, _closeCode int) {
@@ -601,14 +601,14 @@ func TestWebSocketCloseFunc(t *testing.T) {
 }
 
 func TestWebsocketGraphqltransportwsSubprotocol(t *testing.T) {
-	initialize := func(ws transport.Websocket) (*testserver.TestServer, *httptest.Server) {
+	initialize := func(ws websocket.Websocket) (*testserver.TestServer, *httptest.Server) {
 		h := testserver.New()
 		h.AddTransport(ws)
 		return h, httptest.NewServer(h)
 	}
 
 	t.Run("server acks init", func(t *testing.T) {
-		_, srv := initialize(transport.Websocket{})
+		_, srv := initialize(websocket.Websocket{})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -619,7 +619,7 @@ func TestWebsocketGraphqltransportwsSubprotocol(t *testing.T) {
 	})
 
 	t.Run("client can receive data", func(t *testing.T) {
-		handler, srv := initialize(transport.Websocket{})
+		handler, srv := initialize(websocket.Websocket{})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -654,7 +654,7 @@ func TestWebsocketGraphqltransportwsSubprotocol(t *testing.T) {
 	})
 
 	t.Run("receives no graphql-ws keep alive messages", func(t *testing.T) {
-		_, srv := initialize(transport.Websocket{KeepAlivePingInterval: 5 * time.Millisecond})
+		_, srv := initialize(websocket.Websocket{KeepAlivePingInterval: 5 * time.Millisecond})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -673,14 +673,14 @@ func TestWebsocketGraphqltransportwsSubprotocol(t *testing.T) {
 }
 
 func TestWebsocketWithPingPongInterval(t *testing.T) {
-	initialize := func(ws transport.Websocket) (*testserver.TestServer, *httptest.Server) {
+	initialize := func(ws websocket.Websocket) (*testserver.TestServer, *httptest.Server) {
 		h := testserver.New()
 		h.AddTransport(ws)
 		return h, httptest.NewServer(h)
 	}
 
 	t.Run("client receives ping and responds with pong", func(t *testing.T) {
-		_, srv := initialize(transport.Websocket{PingPongInterval: 20 * time.Millisecond})
+		_, srv := initialize(websocket.Websocket{PingPongInterval: 20 * time.Millisecond})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -695,12 +695,12 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 	})
 
 	t.Run("client sends ping and expects pong", func(t *testing.T) {
-		_, srv := initialize(transport.Websocket{PingPongInterval: 10 * time.Millisecond})
+		_, srv := initialize(websocket.Websocket{PingPongInterval: 10 * time.Millisecond})
 		defer srv.Close()
 	})
 
 	t.Run("client sends ping and expects pong", func(t *testing.T) {
-		_, srv := initialize(transport.Websocket{PingPongInterval: 10 * time.Millisecond})
+		_, srv := initialize(websocket.Websocket{PingPongInterval: 10 * time.Millisecond})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -716,7 +716,7 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 	t.Run("server closes with error if client does not pong and !MissingPongOk", func(t *testing.T) {
 		h := testserver.New()
 		closeFuncCalled := make(chan bool, 1)
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			MissingPongOk:    false, // default value but being explicit for test clarity.
 			PingPongInterval: 5 * time.Millisecond,
 			CloseFunc: func(_ context.Context, _closeCode int) {
@@ -747,7 +747,7 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 	t.Run("server does not close with error if client does not pong and MissingPongOk", func(t *testing.T) {
 		h := testserver.New()
 		closeFuncCalled := make(chan bool, 1)
-		h.AddTransport(transport.Websocket{
+		h.AddTransport(websocket.Websocket{
 			MissingPongOk:    true,
 			PingPongInterval: 10 * time.Millisecond,
 			CloseFunc: func(_ context.Context, _closeCode int) {
@@ -780,7 +780,7 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 		// Before the refactor, the code would try to convert a ping message to a graphql-ws message type
 		// But since this message type does not exist in the graphql-ws sub protocol, it would fail
 
-		_, srv := initialize(transport.Websocket{
+		_, srv := initialize(websocket.Websocket{
 			PingPongInterval:      5 * time.Millisecond,
 			KeepAlivePingInterval: 10 * time.Millisecond,
 		})
@@ -801,7 +801,7 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 		assert.Equal(t, connectionKeepAliveMsg, readOp(c).Type)
 	})
 	t.Run("pong only messages are sent when configured with graphql-transport-ws", func(t *testing.T) {
-		h, srv := initialize(transport.Websocket{PongOnlyInterval: 10 * time.Millisecond})
+		h, srv := initialize(websocket.Websocket{PongOnlyInterval: 10 * time.Millisecond})
 		defer srv.Close()
 
 		c := wsConnectWithSubprotocol(srv.URL, graphqltransportwsSubprotocol)
@@ -835,17 +835,17 @@ func TestWebsocketWithPingPongInterval(t *testing.T) {
 	})
 }
 
-func wsConnect(url string) *websocket.Conn {
+func wsConnect(url string) *gwebsocket.Conn {
 	return wsConnectWithSubprotocol(url, "")
 }
 
-func wsConnectWithSubprotocol(url, subprotocol string) *websocket.Conn {
+func wsConnectWithSubprotocol(url, subprotocol string) *gwebsocket.Conn {
 	h := make(http.Header)
 	if subprotocol != "" {
 		h.Add("Sec-WebSocket-Protocol", subprotocol)
 	}
 
-	c, resp, err := websocket.DefaultDialer.Dial(strings.ReplaceAll(url, "http://", "ws://"), h)
+	c, resp, err := gwebsocket.DefaultDialer.Dial(strings.ReplaceAll(url, "http://", "ws://"), h)
 	if err != nil {
 		panic(err)
 	}
@@ -854,13 +854,13 @@ func wsConnectWithSubprotocol(url, subprotocol string) *websocket.Conn {
 	return c
 }
 
-func writeRaw(conn *websocket.Conn, msg string) {
-	if err := conn.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
+func writeRaw(conn *gwebsocket.Conn, msg string) {
+	if err := conn.WriteMessage(gwebsocket.TextMessage, []byte(msg)); err != nil {
 		panic(err)
 	}
 }
 
-func readOp(conn *websocket.Conn) operationMessage {
+func readOp(conn *gwebsocket.Conn) operationMessage {
 	var msg operationMessage
 	if err := conn.ReadJSON(&msg); err != nil {
 		panic(err)

@@ -1,4 +1,4 @@
-package transport
+package websocket
 
 import (
 	"bytes"
@@ -17,6 +17,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 )
 
 type (
@@ -96,7 +98,7 @@ func (t Websocket) Do(w http.ResponseWriter, r *http.Request, exec graphql.Graph
 	ws, err := t.Upgrader.Upgrade(w, r, http.Header{})
 	if err != nil {
 		log.Printf("unable to upgrade %T to websocket %s: ", w, err.Error())
-		SendErrorf(w, http.StatusBadRequest, "unable to upgrade")
+		transport.SendErrorf(w, http.StatusBadRequest, "unable to upgrade")
 		return
 	}
 
@@ -378,7 +380,7 @@ func (c *wsConnection) closeOnCancel(ctx context.Context) {
 func (c *wsConnection) subscribe(start time.Time, msg *message) {
 	ctx := graphql.StartOperationTrace(c.ctx)
 	var params *graphql.RawParams
-	if err := jsonDecode(bytes.NewReader(msg.payload), &params); err != nil {
+	if err := internal.JsonDecode(bytes.NewReader(msg.payload), &params); err != nil {
 		c.sendError(msg.id, &gqlerror.Error{Message: "invalid json"})
 		c.complete(msg.id)
 		return

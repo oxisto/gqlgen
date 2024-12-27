@@ -11,6 +11,7 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 )
 
 // POST implements the POST side of the default HTTP transport
@@ -84,7 +85,7 @@ func (h POST) Do(w http.ResponseWriter, r *http.Request, exec graphql.GraphExecu
 	}
 
 	bodyReader := bytes.NewReader(bodyBytes)
-	if err := jsonDecode(bodyReader, &params); err != nil {
+	if err := internal.JsonDecode(bodyReader, &params); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		gqlErr := gqlerror.Errorf(
 			"json request body could not be decoded: %+v body:%s",

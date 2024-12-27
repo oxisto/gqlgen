@@ -1,8 +1,10 @@
-package transport
+package websocket
 
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 
 	"github.com/gorilla/websocket"
 )
@@ -58,7 +60,7 @@ func (me graphqlwsMessageExchanger) NextMessage() (message, error) {
 	}
 
 	var graphqlwsMessage graphqlwsMessage
-	if err := jsonDecode(r, &graphqlwsMessage); err != nil {
+	if err := internal.JsonDecode(r, &graphqlwsMessage); err != nil {
 		return message{}, errInvalidMsg
 	}
 

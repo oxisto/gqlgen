@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gwebsocket "github.com/gorilla/websocket"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -13,6 +13,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/handler/transport/websocket"
 	"github.com/99designs/gqlgen/graphql/playground"
 )
 
@@ -27,7 +28,7 @@ func GraphQL(exec graphql.ExecutableSchema, options ...Option) http.HandlerFunc 
 
 	srv := handler.New(exec)
 
-	srv.AddTransport(transport.Websocket{
+	srv.AddTransport(websocket.Websocket{
 		Upgrader:              cfg.upgrader,
 		InitFunc:              cfg.websocketInitFunc,
 		KeepAlivePingInterval: cfg.connectionKeepAlivePingInterval,
@@ -77,8 +78,8 @@ func GraphQL(exec graphql.ExecutableSchema, options ...Option) http.HandlerFunc 
 // Deprecated: switch to graphql/handler.New
 type Config struct {
 	cacheSize                       int
-	upgrader                        websocket.Upgrader
-	websocketInitFunc               transport.WebsocketInitFunc
+	upgrader                        gwebsocket.Upgrader
+	websocketInitFunc               websocket.WebsocketInitFunc
 	connectionKeepAlivePingInterval time.Duration
 	connectionPingPongInterval      time.Duration
 	recover                         graphql.RecoverFunc
@@ -97,7 +98,7 @@ type Config struct {
 type Option func(cfg *Config)
 
 // Deprecated: switch to graphql/handler.New
-func WebsocketUpgrader(upgrader websocket.Upgrader) Option {
+func WebsocketUpgrader(upgrader gwebsocket.Upgrader) Option {
 	return func(cfg *Config) {
 		cfg.upgrader = upgrader
 	}
@@ -169,7 +170,7 @@ func RequestMiddleware(middleware graphql.ResponseMiddleware) Option {
 // WebsocketInitFunc is called when the server receives connection init message from the client.
 // This can be used to check initial payload to see whether to accept the websocket connection.
 // Deprecated: switch to graphql/handler.New
-func WebsocketInitFunc(websocketInitFunc transport.WebsocketInitFunc) Option {
+func WebsocketInitFunc(websocketInitFunc websocket.WebsocketInitFunc) Option {
 	return func(cfg *Config) {
 		cfg.websocketInitFunc = websocketInitFunc
 	}
@@ -228,8 +229,8 @@ func EnablePersistedQueryCache(cache PersistedQueryCache) Option {
 	}
 }
 
-func GetInitPayload(ctx context.Context) transport.InitPayload {
-	return transport.GetInitPayload(ctx)
+func GetInitPayload(ctx context.Context) websocket.InitPayload {
+	return websocket.GetInitPayload(ctx)
 }
 
 type apqAdapter struct {
@@ -255,4 +256,4 @@ func Playground(title, endpoint string) http.HandlerFunc {
 }
 
 // Deprecated: use transport.InitPayload instead
-type InitPayload = transport.InitPayload
+type InitPayload = websocket.InitPayload

@@ -10,6 +10,7 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 )
 
 // FORM implements the application/x-www-form-urlencoded side of the default HTTP transport
@@ -110,7 +111,7 @@ func (h UrlEncodedForm) parseJson(bodyString string) (*graphql.RawParams, error)
 	params := &graphql.RawParams{}
 	bodyReader := io.NopCloser(strings.NewReader(bodyString))
 
-	err := jsonDecode(bodyReader, &params)
+	err := internal.JsonDecode(bodyReader, &params)
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/handler/transport/websocket"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/99designs/gqlgen/integration/server"
 )
@@ -37,7 +38,7 @@ func main() {
 
 	srv := handler.New(server.NewExecutableSchema(cfg))
 
-	srv.AddTransport(transport.Websocket{
+	srv.AddTransport(websocket.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
 	})
 	srv.AddTransport(transport.SSE{})

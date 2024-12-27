@@ -1,8 +1,6 @@
 package transport
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +10,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
+	"github.com/99designs/gqlgen/graphql/handler/transport/internal"
 )
 
 // GET implements the GET side of the default HTTP transport
@@ -49,7 +48,7 @@ func (h GET) Do(w http.ResponseWriter, r *http.Request, exec graphql.GraphExecut
 	raw.ReadTime.Start = graphql.Now()
 
 	if variables := query.Get("variables"); variables != "" {
-		if err := jsonDecode(strings.NewReader(variables), &raw.Variables); err != nil {
+		if err := internal.JsonDecode(strings.NewReader(variables), &raw.Variables); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			writeJsonError(w, "variables could not be decoded")
 			return
@@ -57,7 +56,7 @@ func (h GET) Do(w http.ResponseWriter, r *http.Request, exec graphql.GraphExecut
 	}
 
 	if extensions := query.Get("extensions"); extensions != "" {
-		if err := jsonDecode(strings.NewReader(extensions), &raw.Extensions); err != nil {
+		if err := internal.JsonDecode(strings.NewReader(extensions), &raw.Extensions); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			writeJsonError(w, "extensions could not be decoded")
 			return
@@ -82,12 +81,6 @@ func (h GET) Do(w http.ResponseWriter, r *http.Request, exec graphql.GraphExecut
 
 	responses, ctx := exec.DispatchOperation(r.Context(), opCtx)
 	writeJson(w, responses(ctx))
-}
-
-func jsonDecode(r io.Reader, val any) error {
-	dec := json.NewDecoder(r)
-	dec.UseNumber()
-	return dec.Decode(val)
 }
 
 func statusFor(errs gqlerror.List) int {
